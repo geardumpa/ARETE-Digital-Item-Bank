@@ -5,7 +5,7 @@ import hashlib
 import math
 
 # ===============================
-# PAGE CONFIG & STYLE
+# PAGE CONFIG
 # ===============================
 st.set_page_config(
     page_title="ARETE Item Analysis Automated System",
@@ -13,22 +13,40 @@ st.set_page_config(
     layout="wide"
 )
 
+# ===============================
+# GLOBAL STYLE (FONT + COLORS)
+# ===============================
 st.markdown("""
 <style>
+html, body, [class*="css"] {
+    font-family: "Times New Roman", serif;
+    background-color: #F5F7FA;
+    color: #111111;
+}
+
 .big-title {
     font-size: 36px;
-    font-weight: 700;
+    font-weight: bold;
     color: #0A2A66;
 }
+
 .sub-title {
     font-size: 18px;
-    color: #555;
+    color: #2E2E2E;
 }
+
 .section {
-    background-color: #F8F9FA;
-    padding: 20px;
-    border-radius: 10px;
+    background-color: #FFFFFF;
+    padding: 22px;
+    border-radius: 8px;
     margin-bottom: 20px;
+    border-left: 6px solid #0A2A66;
+}
+
+/* Blue outline for tables */
+[data-testid="stDataFrame"] {
+    border-left: 6px solid #0A2A66;
+    padding-left: 5px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -36,9 +54,6 @@ st.markdown("""
 # ===============================
 # UTILITIES
 # ===============================
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
-
 def difficulty_label(p):
     if p <= 0.20: return "Very Difficult"
     if p <= 0.40: return "Difficult"
@@ -57,8 +72,6 @@ def final_decision(p, d):
     if d >= 0.20 and 0.26 <= p <= 0.75:
         return "Retained"
     if d < 0.20 and 0.26 <= p <= 0.75:
-        return "Revised"
-    if d >= 0.20 and not (0.26 <= p <= 0.75):
         return "Revised"
     return "Rejected"
 
@@ -83,90 +96,124 @@ def kr_label(alpha):
     return "Unacceptable"
 
 # ===============================
-# LOGIN
+# PUBLIC LANDING PAGE
+# ===============================
+def landing_page():
+    st.markdown('<div class="big-title">ARETE Item Analysis Automated System</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Departmental Assessment Item Analytics System (DAIAS)</div>', unsafe_allow_html=True)
+    st.markdown("---")
+
+    st.markdown("""
+    <div class="section">
+        <h4>System Overview</h4>
+        <p>
+        The <strong>ARETE Item Analysis Automated System</strong> is an institutional-grade,
+        web-based psychometric evaluation platform developed to support evidence-based
+        decision-making in academic assessment.
+        </p>
+        <p>
+        It automates the computation, interpretation, and reporting of item difficulty,
+        item discrimination, and test reliability using established principles of
+        <em>Classical Test Theory</em>, ensuring transparency, validity, and quality assurance
+        in examination development.
+        </p>
+    </div>
+
+    <div class="section">
+        <h4>Supported Examination Types</h4>
+        <ul>
+            <li>Departmental and Institutional Examinations</li>
+            <li>Summative and Periodical Assessments</li>
+            <li>Mock Board and Pre-Board Examinations</li>
+            <li>In-House Standardized Tests</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if st.button("Proceed to Faculty Login"):
+        st.session_state.show_login = True
+        st.rerun()
+
+# ===============================
+# LOGIN PAGE
 # ===============================
 def login_page():
-    st.markdown('<div class="big-title">CTE Faculty Login</div>', unsafe_allow_html=True)
-
+    st.markdown('<div class="big-title">Faculty Login</div>', unsafe_allow_html=True)
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        users = pd.read_csv("users.csv")
-
-        match = users[
-            (users["username"] == username) &
-            (users["password"] == password)
-        ]
-
-        if not match.empty:
-            st.session_state.logged_in = True
-            st.rerun()
-        else:
-            st.error("❌ Invalid username or password")
+        st.session_state.logged_in = True
+        st.rerun()
 
 # ===============================
-# MAIN APP
+# MAIN APPLICATION
 # ===============================
 def main_app():
-    st.markdown('<div class="big-title">ARETE Departmental Assessment Item Analytics System (DAIAS)</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-title">Difficulty • Discrimination • Reliability</div>', unsafe_allow_html=True)
-
+    st.markdown('<div class="big-title">ARETE Departmental Automated Item Analysis System (DAIAS)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Item Analysis Dashboard • Difficulty • Discrimination • Reliability</div>', unsafe_allow_html=True)
     st.markdown("---")
 
-    responses_file = st.file_uploader("📄 Upload Student Responses (CSV)", type="csv")
-    key_file = st.file_uploader("📑 Upload Answer Key (CSV)", type="csv")
+    st.markdown("### EXAMINATION MANAGEMENT MODULE")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        exam_name = st.text_input(
+            "EXAMINATION TITLE",
+        )
+
+        year_level = st.selectbox(
+            "YEAR LEVEL",
+            [
+                "1st Year",
+                "2nd Year",
+                "3rd Year",
+                "4th Year"
+            ])
+        
+    with col2:
+        academic_year = st.text_input(
+            "ACADEMIC YEAR",
+        )
+
+        exam_type = st.selectbox(
+            "EXAMINATION TYPE",
+            [
+                "Departmental Examination",
+                "Mock Board Examination"
+            ]
+        )
+
+    st.markdown("### ASSESSMENT DATA SUBMISSION")
+    
+    responses_file = st.file_uploader("UPLOAD STUDENTS RESPONSES (CSV)", type="csv")
+    key_file = st.file_uploader("UPLOAD ANSWER KEY (CSV)", type="csv")
 
     if responses_file and key_file:
         responses = pd.read_csv(responses_file)
         key = pd.read_csv(key_file)
 
-        # Identify item columns
         item_cols = [c for c in responses.columns if c.lower().startswith("item")]
+        responses = responses[item_cols]
+        key = key[item_cols]
 
-        # --- KEY ALIGNMENT (SAFE) ---
-        if key.shape[0] == 1:
-            common_items = [c for c in item_cols if c in key.columns]
-            responses = responses[common_items]
-            key = key[common_items]
-
-        elif key.shape[1] == 2:
-            key.columns = ["Item", "Answer"]
-            key_dict = dict(zip(key["Item"], key["Answer"]))
-            common_items = [c for c in item_cols if c in key_dict]
-
-            responses = responses[common_items]
-            key = pd.DataFrame([[key_dict[c] for c in common_items]], columns=common_items)
-
-        else:
-            st.error("❌ Invalid key format")
-            return
-
-        # Binary scoring
         scored = (responses == key.iloc[0]).astype(int)
-
-        # Total scores
         scores = scored.sum(axis=1)
         scored["Total"] = scores
-
-        # Sort by score
         scored = scored.sort_values("Total", ascending=False)
 
-        # 27% groups
         n = len(scored)
         g = max(1, math.floor(0.27 * n))
         top = scored.head(g)
         bottom = scored.tail(g)
 
         results = []
-
-        for item in common_items:
+        for item in item_cols:
             U = top[item].sum()
             L = bottom[item].sum()
-
             p = (U + L) / (2 * g)
             d = (U - L) / g
-
             results.append({
                 "Item": item,
                 "Difficulty Index (P)": round(p, 3),
@@ -176,36 +223,89 @@ def main_app():
                 "Final Decision": final_decision(p, d)
             })
 
-        result_df = pd.DataFrame(results)
+        df = pd.DataFrame(results)
+        alpha = kr20(scored[item_cols])
 
-        # Reliability
-        alpha = kr20(scored[common_items])
-
-        st.markdown("### 📂 Item Analysis Results")
-        st.dataframe(result_df, use_container_width=True)
-
-        st.markdown("### 📈 Test Reliability")
-        st.metric(
-            label="KR-20 Reliability Coefficient",
-            value=round(alpha, 3),
-            delta=kr_label(alpha)
+        st.markdown("### ITEM ANALYSIS RESULTS")
+        st.markdown(
+            f"""
+            <div style="
+                background-color: #FFFFFF;
+                border: 1.5px solid #0A2A66;
+                border-radius: 10px;
+                padding: 14px 18px;
+                margin-bottom: 18px;
+                font-size: 14px;
+                line-height: 1.5;
+            ">
+                <div><strong>Examination Title:</strong> {exam_name}</div>
+                <div><strong>Subject:</strong> {year_level}</div>
+                <div><strong>Academic Year:</strong> {academic_year}</div>
+                <div><strong>Examination Type:</strong> {exam_type}</div>
+            """,
+            unsafe_allow_html=True
         )
 
-        # Download
-        st.download_button(
-            "⬇ Download Item Analysis",
-            result_df.to_csv(index=False),
-            "item_analysis_results.csv",
-            "text/csv"
-        )
+        st.markdown("### Difficulty and Discrimination Indices")
+        st.dataframe(df, use_container_width=True)
+
+        st.markdown("### Test Reliability")
+
+        reliability_df = pd.DataFrame({
+            "Measure": [
+                "KR-20 Coefficient",
+                "Reliability Interpretation"
+            ],
+            "Result": [
+                round(alpha, 3),
+                kr_label(alpha)
+            ]
+        })
+
+        st.dataframe(reliability_df, use_container_width=True)
+
+        # ===============================
+        # OVERALL ITEM INDEX SUMMARY
+        # ===============================
+        st.markdown("### Overall Item Index Summary")
+
+        overall_p = sum(
+            item["Difficulty Index (P)"] for item in results
+        ) / len(results)
+
+        overall_d = sum(
+            item["Discrimination Index (D)"] for item in results
+        ) / len(results)
+
+        overall_df = pd.DataFrame({
+            "Index": [
+                "Overall Difficulty Index (P̄)",
+                "Overall Discrimination Index (D̄)"
+            ],
+            "Computed Value": [
+                round(overall_p, 3),
+                round(overall_d, 3)
+            ],
+            "Interpretation": [
+                difficulty_label(overall_p),
+                discrimination_label(overall_d)
+            ]
+        })
+
+        st.dataframe(overall_df, use_container_width=True)
+    
 
 # ===============================
 # APP FLOW
 # ===============================
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
+if "show_login" not in st.session_state:
+    st.session_state.show_login = False
 
-if not st.session_state.logged_in:
+if not st.session_state.show_login:
+    landing_page()
+elif not st.session_state.logged_in:
     login_page()
 else:
     main_app()
